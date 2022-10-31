@@ -2,29 +2,17 @@ package evaluation;
 
 import core.AbstractParameters;
 import core.AbstractPlayer;
-import core.Game;
 import core.ParameterFactory;
 import core.interfaces.IGameListener;
-import core.interfaces.IStateHeuristic;
 import core.interfaces.IStatisticLogger;
 import games.GameType;
-import players.PlayerConstants;
 import players.PlayerFactory;
-import players.heuristics.SushiGoHeuristic;
-import players.heuristics.SushiGoHeuristic_2;
+import games.sushigo.SushiGoHeuristic;
 import players.mcts.BasicMCTSPlayer;
 import players.mcts.MCTSParams;
-import players.mcts.MCTSPlayer;
-import players.rhea.RHEAEnums;
-import players.rhea.RHEAParams;
 import players.rhea.RHEAPlayer;
-import players.rmhc.RMHCParams;
-import players.rmhc.RMHCPlayer;
-import players.simple.OSLAPlayer;
-import players.simple.RandomPlayer;
 import utilities.FileStatsLogger;
 
-import java.io.File;
 import java.util.*;
 
 import static utilities.Utils.GameResult;
@@ -110,7 +98,7 @@ public class RoundRobinTournament extends AbstractTournament {
         int nPlayersPerGame = getArg(args, "nPlayers", 2);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
-        int matchups = getArg(args, "matchups", 100);
+        int matchups = getArg(args, "matchups", 50);
         String playerDirectory = getArg(args, "players", "");
         String gameParams = getArg(args, "gameParams", "");
         String statsLogPrefix = getArg(args, "statsLog", "");
@@ -135,11 +123,12 @@ public class RoundRobinTournament extends AbstractTournament {
             /* 2. Set up players */
             MCTSParams params1 = new MCTSParams();
             params1.heuristic = new SushiGoHeuristic();
-            agents.add(new BasicMCTSPlayer(params1));
+            agents.add(new BasicMCTSPlayer());
 
-            MCTSParams params2 = new MCTSParams();
-            params2.heuristic = new SushiGoHeuristic_2();
-            agents.add(new BasicMCTSPlayer(params2));
+            agents.add(new RHEAPlayer());
+
+//            agents.add(new RandomPlayer());
+//            agents.add(new BasicMCTSPlayer());
 
 //            agents.add(new MCTSPlayer());
 //            agents.add(new BasicMCTSPlayer());

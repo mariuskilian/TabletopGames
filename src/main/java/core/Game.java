@@ -4,7 +4,6 @@ import core.actions.AbstractAction;
 import core.actions.DoNothing;
 import core.interfaces.IGameListener;
 import core.interfaces.IPrintable;
-import core.interfaces.IStateHeuristic;
 import core.turnorders.ReactiveTurnOrder;
 import games.GameType;
 import gui.AbstractGUIManager;
@@ -13,16 +12,12 @@ import gui.GamePanel;
 import io.humble.video.*;
 import io.humble.video.awt.MediaPictureConverter;
 import io.humble.video.awt.MediaPictureConverterFactory;
-import players.heuristics.SushiGoHeuristic;
+import games.sushigo.SushiGoHeuristic;
 import players.human.ActionController;
 import players.human.HumanConsolePlayer;
 import players.human.HumanGUIPlayer;
 import players.mcts.BasicMCTSPlayer;
 import players.mcts.MCTSParams;
-import players.rhea.RHEAPlayer;
-import players.simple.RandomPlayer;
-import players.mcts.MCTSPlayer;
-import players.simple.OSLAPlayer;
 import utilities.Pair;
 import utilities.TAGStatSummary;
 import utilities.Utils;
@@ -37,7 +32,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static core.CoreConstants.GameEvents;
-import static games.GameType.*;
 import static utilities.Utils.componentToImage;
 
 public class Game {
