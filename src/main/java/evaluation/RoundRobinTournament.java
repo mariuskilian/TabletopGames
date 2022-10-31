@@ -2,7 +2,6 @@ package evaluation;
 
 import core.AbstractParameters;
 import core.AbstractPlayer;
-import core.Game;
 import core.ParameterFactory;
 import core.interfaces.IGameListener;
 import core.interfaces.IStatisticLogger;
@@ -10,12 +9,10 @@ import games.GameType;
 import players.PlayerFactory;
 import players.mcts.BasicMCTSPlayer;
 import players.mcts.MCTSPlayer;
-import players.rmhc.RMHCPlayer;
-import players.simple.OSLAPlayer;
+import players.mcts.BasicPruningMCTSPlayer;
 import players.simple.RandomPlayer;
 import utilities.FileStatsLogger;
 
-import java.io.File;
 import java.util.*;
 
 import static utilities.Utils.GameResult;
@@ -98,7 +95,7 @@ public class RoundRobinTournament extends AbstractTournament {
         }
         /* 1. Settings for the tournament */
         GameType gameToPlay = GameType.valueOf(getArg(args, "game", "SushiGo"));
-        int nPlayersPerGame = getArg(args, "nPlayers", 3);
+        int nPlayersPerGame = getArg(args, "nPlayers", 4);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
         int matchups = getArg(args, "matchups", 50);
@@ -127,6 +124,8 @@ public class RoundRobinTournament extends AbstractTournament {
             agents.add(new MCTSPlayer());
             agents.add(new BasicMCTSPlayer());
             agents.add(new RandomPlayer());
+
+            agents.add(new BasicPruningMCTSPlayer());
         }
 
         AbstractParameters params = ParameterFactory.createFromFile(gameToPlay, gameParams);
