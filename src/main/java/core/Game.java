@@ -18,6 +18,7 @@ import players.human.HumanConsolePlayer;
 import players.human.HumanGUIPlayer;
 import players.mcts.BasicMCTSPlayer;
 import players.mcts.MCTSParams;
+import players.simple.RandomPlayer;
 import utilities.Pair;
 import utilities.TAGStatSummary;
 import utilities.Utils;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static core.CoreConstants.*;
 import static core.CoreConstants.GameEvents;
 import static utilities.Utils.componentToImage;
 
@@ -75,6 +77,8 @@ public class Game {
     String codecName = null;
     int snapsPerSecond = 10;
     private int turnPause;
+
+    public boolean paused;
 
     /**
      * Game constructor. Receives a list of players, a forward model and a game state. Sets unique and final
@@ -228,6 +232,7 @@ public class Game {
                 } else {
                     break;
                 }
+                // System.out.println("Game " + i + "/" + nRepetitions);
             }
 
             if (game != null) {
@@ -490,7 +495,7 @@ public class Game {
         return this.getPlayers().get(activePlayer) instanceof HumanGUIPlayer;
     }
 
-    public final void oneAction() {
+    public final AbstractAction oneAction() {
 
         // we pause before each action is taken if running with a delay (e.g. for video recording with random players)
         if (turnPause > 0)
@@ -585,6 +590,7 @@ public class Game {
         AbstractAction finalAction1 = action;
         listeners.forEach(l -> l.onEvent(GameEvents.ACTION_TAKEN, gameState.copy(), finalAction1.copy()));
         if (debug) System.out.printf("Finishing oneAction for player %s%n", activePlayer);
+        return action;
     }
 
     /**
@@ -752,6 +758,10 @@ public class Game {
         return pause;
     }
 
+    public void flipPaused() {
+        this.paused = !this.paused;
+    }
+
     public void setPaused(boolean paused) {
         this.pause = paused;
     }
@@ -905,7 +915,7 @@ public class Game {
         String gameType = Utils.getArg(args, "game", "SushiGo");
         boolean useGUI = Utils.getArg(args, "gui", true);
         int playerCount = Utils.getArg(args, "nPlayers", 2);
-        int turnPause = Utils.getArg(args, "turnPause", 1000);
+        int turnPause = Utils.getArg(args, "turnPause", 0);
         long seed = Utils.getArg(args, "seed", System.currentTimeMillis());
 
         ActionController ac = new ActionController(); //null;
@@ -913,11 +923,8 @@ public class Game {
         /* Set up players for the game */
         ArrayList<AbstractPlayer> players = new ArrayList<>(playerCount);
 
-        players.add(new BasicMCTSPlayer());
-
-        MCTSParams params = new MCTSParams();
-        params.heuristic = new SushiGoHeuristic();
-        players.add(new BasicMCTSPlayer(params));
+        players.add(new RandomPlayer());
+        players.add(new RandomPlayer());
 //        players.add(new MCTSPlayer());
 //        MCTSParams params1 = new MCTSParams();
 //        players.add(new MCTSPlayer(params1));
