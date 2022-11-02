@@ -212,13 +212,13 @@ class BasicPruningTreeNode {
             SGGameState sggs = (SGGameState) state;
             int currentPlayerId = sggs.getCurrentPlayer();
             int playerCount = sggs.getNPlayers();
-            boolean isFirstRound = true;
+            boolean isFirstRound = false;
             for (int i = 0; i < playerCount; i++) {
                 if (i == currentPlayerId) {
                     continue;
                 } else {
-                    if (sggs.hasSeenHand(currentPlayerId, i)) {
-                        isFirstRound = false;
+                    if (!sggs.hasSeenHand(currentPlayerId, i)) {
+                        isFirstRound = true;
                     }
                 }
             }
