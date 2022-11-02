@@ -228,7 +228,7 @@ class BasicPruningTreeNode {
                     SGCard.SGCardType cardType = playCardAction.cardType;
                     if (cardType == SGCard.SGCardType.Maki_1 || cardType == SGCard.SGCardType.Maki_2 || cardType == SGCard.SGCardType.Maki_3) {
                         if (!canWinMakiRace()) {
-                            uctValue = -Double.MAX_VALUE + 1;
+                            uctValue = -Double.MAX_VALUE;
                         }
                     }
                 } catch (ClassCastException e) {
@@ -237,7 +237,7 @@ class BasicPruningTreeNode {
             }
 
             // Assign value
-            if (uctValue > bestValue) {
+            if (bestAction == null || uctValue > bestValue) {
                 bestAction = action;
                 bestValue = uctValue;
             }

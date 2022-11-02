@@ -95,10 +95,10 @@ public class RoundRobinTournament extends AbstractTournament {
         }
         /* 1. Settings for the tournament */
         GameType gameToPlay = GameType.valueOf(getArg(args, "game", "SushiGo"));
-        int nPlayersPerGame = getArg(args, "nPlayers", 2);
+        int nPlayersPerGame = getArg(args, "nPlayers", 4);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
-        int matchups = getArg(args, "matchups", 50);
+        int matchups = getArg(args, "matchups", 10);
         String playerDirectory = getArg(args, "players", "");
         String gameParams = getArg(args, "gameParams", "");
         String statsLogPrefix = getArg(args, "statsLog", "");
@@ -121,6 +121,8 @@ public class RoundRobinTournament extends AbstractTournament {
             }
         } else {
             /* 2. Set up players */
+            agents.add(new BasicMCTSPlayer());
+            agents.add(new BasicMCTSPlayer());
             agents.add(new BasicMCTSPlayer());
             agents.add(new BasicPruningMCTSPlayer());
         }
