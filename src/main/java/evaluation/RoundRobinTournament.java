@@ -10,7 +10,9 @@ import players.PlayerFactory;
 import games.sushigo.SushiGoHeuristic;
 import players.mcts.BasicMCTSPlayer;
 import players.mcts.MCTSParams;
+import players.mcts.MCTSPlayer;
 import players.rhea.RHEAPlayer;
+import players.simple.RandomPlayer;
 import utilities.FileStatsLogger;
 
 import java.util.*;
@@ -123,9 +125,8 @@ public class RoundRobinTournament extends AbstractTournament {
             /* 2. Set up players */
             MCTSParams params1 = new MCTSParams();
             params1.heuristic = new SushiGoHeuristic();
-            agents.add(new BasicMCTSPlayer());
-
-            agents.add(new RHEAPlayer());
+            agents.add(new BasicMCTSPlayer(params1));
+            agents.add(new MCTSPlayer());
 
 //            agents.add(new RandomPlayer());
 //            agents.add(new BasicMCTSPlayer());
