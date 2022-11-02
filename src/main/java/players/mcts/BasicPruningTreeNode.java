@@ -223,68 +223,82 @@ class BasicPruningTreeNode {
                     }
                 }
             }
+
             if (!isFirstRound) {
+                boolean isNoGainAction = false;
                 try {
                     PlayCardAction playCardAction = (PlayCardAction)action;
                     SGCard.SGCardType cardType = playCardAction.cardType;
-
                     ArrayList<SGCard> availableCards = new ArrayList<>();
                     for (int i = 0; i < playerCount; i++) {
                         availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
                     }
-
-                    if (cardType == SGCard.SGCardType.Maki_1 || cardType == SGCard.SGCardType.Maki_2 || cardType == SGCard.SGCardType.Maki_3) {
-                        if (!canWinMakiRace(sggs, currentPlayerId, playerCount)) {
-                            uctValue = -Double.MAX_VALUE + 1;
+                    switch (cardType) {
+                        case Maki_1:
+                        case Maki_2:
+                        case Maki_3: {
+                            if (!canWinMakiRace(sggs, currentPlayerId, playerCount, availableCards)) {
+                                isNoGainAction = true;
+                            }
+                            break;
                         }
-                    } else if (cardType == SGCard.SGCardType.Wasabi) {
-                        if (availableCards.stream().noneMatch(c -> c.type == SGCard.SGCardType.EggNigiri || c.type == SGCard.SGCardType.SalmonNigiri || c.type == SGCard.SGCardType.SquidNigiri)) {
-                            uctValue = -Double.MAX_VALUE + 1;
+                        case Wasabi: {
+                            if (availableCards.stream().noneMatch(c -> c.type == SGCard.SGCardType.EggNigiri || c.type == SGCard.SGCardType.SalmonNigiri || c.type == SGCard.SGCardType.SquidNigiri)) {
+                                isNoGainAction = true;
+                            }
+                            break;
                         }
-                    } else if (cardType == SGCard.SGCardType.Tempura) {
-                        if (availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Tempura).count() == 1) {
-                            boolean noOneCanMakeTempuraSet = true;
-                            for (int i = 0; i < playerCount; i++) {
-                                if (sggs.getPlayerTempuraAmount(i) % 2 == 1) {
-                                    noOneCanMakeTempuraSet = false;
+                        case Tempura: {
+                            if (availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Tempura).count() == 1) {
+                                boolean noOneCanMakeTempuraSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerTempuraAmount(i) % 2 == 1) {
+                                        noOneCanMakeTempuraSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeTempuraSet) {
+                                    isNoGainAction = true;
                                 }
                             }
-                            if (noOneCanMakeTempuraSet) {
-                                uctValue = -Double.MAX_VALUE + 1;
-                            }
+                            break;
                         }
-                    } else if (cardType == SGCard.SGCardType.Sashimi) {
-                        int sashimiCount = (int) availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Sashimi).count();
-                        if (sashimiCount == 1) {
-                            boolean noOneCanMakeSashimiSet = true;
-                            for (int i = 0; i < playerCount; i++) {
-                                if (sggs.getPlayerSashimiAmount(i) % 3 == 2) {
-                                    noOneCanMakeSashimiSet = false;
+                        case Sashimi: {
+                            int sashimiCount = (int) availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Sashimi).count();
+                            if (sashimiCount == 1) {
+                                boolean noOneCanMakeSashimiSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerSashimiAmount(i) % 3 == 2) {
+                                        noOneCanMakeSashimiSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeSashimiSet) {
+                                    isNoGainAction = true;
+                                }
+                            } else if (sashimiCount == 2) {
+                                boolean noOneCanMakeSashimiSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerSashimiAmount(i) % 3 == 2 || sggs.getPlayerSashimiAmount(i) % 3 == 1) {
+                                        noOneCanMakeSashimiSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeSashimiSet) {
+                                    isNoGainAction = true;
                                 }
                             }
-                            if (noOneCanMakeSashimiSet) {
-                                uctValue = -Double.MAX_VALUE + 1;
-                            }
-                        } else if (sashimiCount == 2) {
-                            boolean noOneCanMakeSashimiSet = true;
-                            for (int i = 0; i < playerCount; i++) {
-                                if (sggs.getPlayerSashimiAmount(i) % 3 == 2 || sggs.getPlayerSashimiAmount(i) % 3 == 1) {
-                                    noOneCanMakeSashimiSet = false;
-                                }
-                            }
-                            if (noOneCanMakeSashimiSet) {
-                                uctValue = -Double.MAX_VALUE + 1;
-                            }
+                            break;
                         }
-                    } else if (cardType == SGCard.SGCardType.Chopsticks) {
-                        int cardsLeft = sggs.getPlayerDeck(currentPlayerId).getSize();
-                        if (cardsLeft == 2) {
-                            uctValue = -Double.MAX_VALUE + 1;
+                        case Chopsticks: {
+                            int cardsLeft = sggs.getPlayerDeck(currentPlayerId).getSize();
+                            if (cardsLeft == 2) {
+                                isNoGainAction = true;
+                            }
+                            break;
                         }
                     }
-                } catch (ClassCastException e) {
-
-                }
+                    if (isNoGainAction) {
+                        uctValue = -Double.MAX_VALUE + 1;
+                    }
+                } catch (ClassCastException e) {}
             }
 
             // Assign value
@@ -301,47 +315,32 @@ class BasicPruningTreeNode {
         return bestAction;
     }
 
-    private boolean canWinMakiRace(SGGameState sggs, int currentPlayerId, int playerCount) {
+    private boolean canWinMakiRace(SGGameState sggs, int currentPlayerId, int playerCount, ArrayList<SGCard> availableCards) {
         ArrayList<Integer> playerMakiScores = new ArrayList<>();
         for (int i = 0; i < playerCount; i++) {
             playerMakiScores.add(0);
         }
+        HashMap<SGCard.SGCardType, Integer> makiValues = new HashMap<>();
+        makiValues.put(SGCard.SGCardType.Maki_1, 1);
+        makiValues.put(SGCard.SGCardType.Maki_2, 2);
+        makiValues.put(SGCard.SGCardType.Maki_3, 3);
+
         for (int i = 0; i < playerCount; i++) {
-            List<SGCard> playerPlayedCards = sggs.getPlayerField(i).getComponents();
-            for (SGCard card : playerPlayedCards) {
+            List<SGCard> playerPlayedMakis = sggs.getPlayerField(i).getComponents();
+            playerPlayedMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
+            for (SGCard card : playerPlayedMakis) {
                 int makiScore = playerMakiScores.get(i);
-                switch (card.type) {
-                    case Maki_1:
-                        playerMakiScores.set(i, makiScore + 1);
-                        break;
-                    case Maki_2:
-                        playerMakiScores.set(i, makiScore + 2);
-                        break;
-                    case Maki_3:
-                        playerMakiScores.set(i, makiScore + 3);
-                        break;
-                }
+                playerMakiScores.set(i, makiScore + makiValues.get(card.type));
             }
         }
-        ArrayList<SGCard> availableMakis = new ArrayList<>();
-        for (int i = 0; i < playerCount; i++) {
-            availableMakis.addAll(sggs.getPlayerDeck(i).getComponents());
-            availableMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
-        }
-        int makiScore = playerMakiScores.get(currentPlayerId);
+
+        ArrayList<SGCard> availableMakis = new ArrayList<>(availableCards);
+        availableMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
         for (SGCard card : availableMakis) {
-            switch (card.type) {
-                case Maki_1:
-                    playerMakiScores.set(currentPlayerId, makiScore + 1);
-                    break;
-                case Maki_2:
-                    playerMakiScores.set(currentPlayerId, makiScore + 2);
-                    break;
-                case Maki_3:
-                    playerMakiScores.set(currentPlayerId, makiScore + 3);
-                    break;
-            }
+            int makiScore = playerMakiScores.get(currentPlayerId);
+            playerMakiScores.set(currentPlayerId, makiScore + makiValues.get(card.type));
         }
+
         int playersAhead = 0;
         for (int i = 0; i < playerCount; i++) {
             if (i == currentPlayerId) {
