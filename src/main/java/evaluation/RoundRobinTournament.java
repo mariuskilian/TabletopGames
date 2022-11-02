@@ -7,7 +7,9 @@ import core.interfaces.IGameListener;
 import core.interfaces.IStatisticLogger;
 import games.GameType;
 import players.PlayerFactory;
+import games.sushigo.SushiGoHeuristic;
 import players.mcts.BasicMCTSPlayer;
+import players.mcts.MCTSParams;
 import players.mcts.MCTSPlayer;
 import players.mcts.BasicPruningMCTSPlayer;
 import players.simple.RandomPlayer;
@@ -95,10 +97,10 @@ public class RoundRobinTournament extends AbstractTournament {
         }
         /* 1. Settings for the tournament */
         GameType gameToPlay = GameType.valueOf(getArg(args, "game", "SushiGo"));
-        int nPlayersPerGame = getArg(args, "nPlayers", 2);
+        int nPlayersPerGame = getArg(args, "nPlayers", 4);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
-        int matchups = getArg(args, "matchups", 30);
+        int matchups = getArg(args, "matchups", 5);
         String playerDirectory = getArg(args, "players", "");
         String gameParams = getArg(args, "gameParams", "");
         String statsLogPrefix = getArg(args, "statsLog", "");
@@ -121,8 +123,23 @@ public class RoundRobinTournament extends AbstractTournament {
             }
         } else {
             /* 2. Set up players */
+            agents.add(new MCTSPlayer());
             agents.add(new BasicMCTSPlayer());
+          
+            MCTSParams params1 = new MCTSParams();
+            params1.heuristic = new SushiGoHeuristic();
+            agents.add(new BasicMCTSPlayer(params1));
+          
             agents.add(new BasicPruningMCTSPlayer());
+
+//            agents.add(new RandomPlayer());
+//            agents.add(new BasicMCTSPlayer());
+
+//            agents.add(new MCTSPlayer());
+//            agents.add(new BasicMCTSPlayer());
+//            agents.add(new RandomPlayer());
+//            agents.add(new RMHCPlayer());
+//            agents.add(new OSLAPlayer());
         }
 
         AbstractParameters params = ParameterFactory.createFromFile(gameToPlay, gameParams);
