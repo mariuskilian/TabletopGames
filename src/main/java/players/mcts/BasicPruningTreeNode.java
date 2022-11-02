@@ -3,6 +3,7 @@ package players.mcts;
 import core.AbstractGameState;
 import core.actions.AbstractAction;
 import games.sushigo.SGGameState;
+import games.sushigo.actions.ChopSticksAction;
 import games.sushigo.actions.PlayCardAction;
 import games.sushigo.cards.SGCard;
 import players.PlayerConstants;
@@ -226,9 +227,59 @@ class BasicPruningTreeNode {
                 try {
                     PlayCardAction playCardAction = (PlayCardAction)action;
                     SGCard.SGCardType cardType = playCardAction.cardType;
+
+                    ArrayList<SGCard> availableCards = new ArrayList<>();
+                    for (int i = 0; i < playerCount; i++) {
+                        availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
+                    }
+
                     if (cardType == SGCard.SGCardType.Maki_1 || cardType == SGCard.SGCardType.Maki_2 || cardType == SGCard.SGCardType.Maki_3) {
-                        if (!canWinMakiRace()) {
-                            uctValue = -Double.MAX_VALUE;
+                        if (!canWinMakiRace(sggs, currentPlayerId, playerCount)) {
+                            uctValue = -Double.MAX_VALUE + 1;
+                        }
+                    } else if (cardType == SGCard.SGCardType.Wasabi) {
+                        if (availableCards.stream().noneMatch(c -> c.type == SGCard.SGCardType.EggNigiri || c.type == SGCard.SGCardType.SalmonNigiri || c.type == SGCard.SGCardType.SquidNigiri)) {
+                            uctValue = -Double.MAX_VALUE + 1;
+                        }
+                    } else if (cardType == SGCard.SGCardType.Tempura) {
+                        if (availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Tempura).count() == 1) {
+                            boolean noOneCanMakeTempuraSet = true;
+                            for (int i = 0; i < playerCount; i++) {
+                                if (sggs.getPlayerTempuraAmount(i) % 2 == 1) {
+                                    noOneCanMakeTempuraSet = false;
+                                }
+                            }
+                            if (noOneCanMakeTempuraSet) {
+                                uctValue = -Double.MAX_VALUE + 1;
+                            }
+                        }
+                    } else if (cardType == SGCard.SGCardType.Sashimi) {
+                        int sashimiCount = (int) availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Sashimi).count();
+                        if (sashimiCount == 1) {
+                            boolean noOneCanMakeSashimiSet = true;
+                            for (int i = 0; i < playerCount; i++) {
+                                if (sggs.getPlayerSashimiAmount(i) % 3 == 2) {
+                                    noOneCanMakeSashimiSet = false;
+                                }
+                            }
+                            if (noOneCanMakeSashimiSet) {
+                                uctValue = -Double.MAX_VALUE + 1;
+                            }
+                        } else if (sashimiCount == 2) {
+                            boolean noOneCanMakeSashimiSet = true;
+                            for (int i = 0; i < playerCount; i++) {
+                                if (sggs.getPlayerSashimiAmount(i) % 3 == 2 || sggs.getPlayerSashimiAmount(i) % 3 == 1) {
+                                    noOneCanMakeSashimiSet = false;
+                                }
+                            }
+                            if (noOneCanMakeSashimiSet) {
+                                uctValue = -Double.MAX_VALUE + 1;
+                            }
+                        }
+                    } else if (cardType == SGCard.SGCardType.Chopsticks) {
+                        int cardsLeft = sggs.getPlayerDeck(currentPlayerId).getSize();
+                        if (cardsLeft == 2) {
+                            uctValue = -Double.MAX_VALUE + 1;
                         }
                     }
                 } catch (ClassCastException e) {
@@ -250,10 +301,7 @@ class BasicPruningTreeNode {
         return bestAction;
     }
 
-    private boolean canWinMakiRace() {
-        SGGameState sggs = (SGGameState) state;
-        int currentPlayerId = sggs.getCurrentPlayer();
-        int playerCount = sggs.getNPlayers();
+    private boolean canWinMakiRace(SGGameState sggs, int currentPlayerId, int playerCount) {
         ArrayList<Integer> playerMakiScores = new ArrayList<>();
         for (int i = 0; i < playerCount; i++) {
             playerMakiScores.add(0);
