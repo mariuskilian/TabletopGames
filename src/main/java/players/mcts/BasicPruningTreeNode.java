@@ -2,14 +2,14 @@ package players.mcts;
 
 import core.AbstractGameState;
 import core.actions.AbstractAction;
+import games.sushigo.SGGameState;
+import games.sushigo.actions.PlayCardAction;
+import games.sushigo.cards.SGCard;
 import players.PlayerConstants;
 import players.simple.RandomPlayer;
 import utilities.ElapsedCpuTimer;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 import static players.PlayerConstants.*;
@@ -209,6 +209,33 @@ class BasicPruningTreeNode {
             // Apply small noise to break ties randomly
             uctValue = noise(uctValue, player.params.epsilon, player.rnd.nextDouble());
 
+            SGGameState sggs = (SGGameState) state;
+            int currentPlayerId = sggs.getCurrentPlayer();
+            int playerCount = sggs.getNPlayers();
+            boolean isFirstRound = true;
+            for (int i = 0; i < playerCount; i++) {
+                if (i == currentPlayerId) {
+                    continue;
+                } else {
+                    if (sggs.hasSeenHand(currentPlayerId, i)) {
+                        isFirstRound = false;
+                    }
+                }
+            }
+            if (!isFirstRound) {
+                try {
+                    PlayCardAction playCardAction = (PlayCardAction)action;
+                    SGCard.SGCardType cardType = playCardAction.cardType;
+                    if (cardType == SGCard.SGCardType.Maki_1 || cardType == SGCard.SGCardType.Maki_2 || cardType == SGCard.SGCardType.Maki_3) {
+                        if (!canWinMakiRace()) {
+                            uctValue = -Double.MAX_VALUE + 1;
+                        }
+                    }
+                } catch (ClassCastException e) {
+
+                }
+            }
+
             // Assign value
             if (uctValue > bestValue) {
                 bestAction = action;
@@ -221,6 +248,63 @@ class BasicPruningTreeNode {
 
         root.fmCallsCount++;  // log one iteration complete
         return bestAction;
+    }
+
+    private boolean canWinMakiRace() {
+        SGGameState sggs = (SGGameState) state;
+        int currentPlayerId = sggs.getCurrentPlayer();
+        int playerCount = sggs.getNPlayers();
+        ArrayList<Integer> playerMakiScores = new ArrayList<>();
+        for (int i = 0; i < playerCount; i++) {
+            playerMakiScores.add(0);
+        }
+        for (int i = 0; i < playerCount; i++) {
+            List<SGCard> playerPlayedCards = sggs.getPlayerField(i).getComponents();
+            for (SGCard card : playerPlayedCards) {
+                int makiScore = playerMakiScores.get(i);
+                switch (card.type) {
+                    case Maki_1:
+                        playerMakiScores.set(i, makiScore + 1);
+                        break;
+                    case Maki_2:
+                        playerMakiScores.set(i, makiScore + 2);
+                        break;
+                    case Maki_3:
+                        playerMakiScores.set(i, makiScore + 3);
+                        break;
+                }
+            }
+        }
+        ArrayList<SGCard> availableMakis = new ArrayList<>();
+        for (int i = 0; i < playerCount; i++) {
+            availableMakis.addAll(sggs.getPlayerDeck(i).getComponents());
+            availableMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
+        }
+        int makiScore = playerMakiScores.get(currentPlayerId);
+        for (SGCard card : availableMakis) {
+            switch (card.type) {
+                case Maki_1:
+                    playerMakiScores.set(currentPlayerId, makiScore + 1);
+                    break;
+                case Maki_2:
+                    playerMakiScores.set(currentPlayerId, makiScore + 2);
+                    break;
+                case Maki_3:
+                    playerMakiScores.set(currentPlayerId, makiScore + 3);
+                    break;
+            }
+        }
+        int playersAhead = 0;
+        for (int i = 0; i < playerCount; i++) {
+            if (i == currentPlayerId) {
+                continue;
+            } else {
+                if (playerMakiScores.get(i) > playerMakiScores.get(currentPlayerId)) {
+                    playersAhead++;
+                }
+            }
+        }
+        return playersAhead < 2;
     }
 
     /**
