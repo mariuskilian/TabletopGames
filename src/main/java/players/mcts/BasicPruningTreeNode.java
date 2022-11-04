@@ -3,7 +3,6 @@ package players.mcts;
 import core.AbstractGameState;
 import core.actions.AbstractAction;
 import games.sushigo.SGGameState;
-import games.sushigo.actions.ChopSticksAction;
 import games.sushigo.actions.PlayCardAction;
 import games.sushigo.cards.SGCard;
 import players.PlayerConstants;
@@ -210,6 +209,7 @@ class BasicPruningTreeNode {
             // Apply small noise to break ties randomly
             uctValue = noise(uctValue, player.params.epsilon, player.rnd.nextDouble());
 
+            // Pruning. Give absolutely worthless actions a minimum UCT value
             SGGameState sggs = (SGGameState) state;
             int currentPlayerId = sggs.getCurrentPlayer();
             int playerCount = sggs.getNPlayers();
@@ -223,11 +223,10 @@ class BasicPruningTreeNode {
                     }
                 }
             }
-
             if (!isFirstRound) {
                 boolean isNoGainAction = false;
                 try {
-                    PlayCardAction playCardAction = (PlayCardAction)action;
+                    PlayCardAction playCardAction = (PlayCardAction) action;
                     SGCard.SGCardType cardType = playCardAction.cardType;
                     ArrayList<SGCard> availableCards = new ArrayList<>();
                     for (int i = 0; i < playerCount; i++) {
@@ -236,19 +235,20 @@ class BasicPruningTreeNode {
                     switch (cardType) {
                         case Maki_1:
                         case Maki_2:
-                        case Maki_3: {
+                        case Maki_3:
+                            // See if the player cannot win the maki race of this round, even if he gets to play all the makis left
                             if (!canWinMakiRace(sggs, currentPlayerId, playerCount, availableCards)) {
                                 isNoGainAction = true;
                             }
                             break;
-                        }
-                        case Wasabi: {
+                        case Wasabi:
+                            // See if there's no nigiri left to play after wasabi
                             if (availableCards.stream().noneMatch(c -> c.type == SGCard.SGCardType.EggNigiri || c.type == SGCard.SGCardType.SalmonNigiri || c.type == SGCard.SGCardType.SquidNigiri)) {
                                 isNoGainAction = true;
                             }
                             break;
-                        }
-                        case Tempura: {
+                        case Tempura:
+                            // See if no one can make another tempura set
                             if (availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Tempura).count() == 1) {
                                 boolean noOneCanMakeTempuraSet = true;
                                 for (int i = 0; i < playerCount; i++) {
@@ -261,8 +261,8 @@ class BasicPruningTreeNode {
                                 }
                             }
                             break;
-                        }
-                        case Sashimi: {
+                        case Sashimi:
+                            // See if no one can make another sashimi set
                             int sashimiCount = (int) availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Sashimi).count();
                             if (sashimiCount == 1) {
                                 boolean noOneCanMakeSashimiSet = true;
@@ -286,19 +286,19 @@ class BasicPruningTreeNode {
                                 }
                             }
                             break;
-                        }
-                        case Chopsticks: {
+                        case Chopsticks:
+                            // Playing chopsticks at the second last turn has zero value, it's always better to play the other card
                             int cardsLeft = sggs.getPlayerDeck(currentPlayerId).getSize();
                             if (cardsLeft == 2) {
                                 isNoGainAction = true;
                             }
                             break;
-                        }
                     }
                     if (isNoGainAction) {
                         uctValue = -Double.MAX_VALUE + 1;
                     }
-                } catch (ClassCastException e) {}
+                } catch (ClassCastException e) {
+                }
             }
 
             // Assign value
@@ -315,32 +315,32 @@ class BasicPruningTreeNode {
         return bestAction;
     }
 
+    // See if the player can win the maki race of this round, if he gets to play all the makis left
     private boolean canWinMakiRace(SGGameState sggs, int currentPlayerId, int playerCount, ArrayList<SGCard> availableCards) {
+        // Get each player's maki score
         ArrayList<Integer> playerMakiScores = new ArrayList<>();
         for (int i = 0; i < playerCount; i++) {
             playerMakiScores.add(0);
         }
-        HashMap<SGCard.SGCardType, Integer> makiValues = new HashMap<>();
-        makiValues.put(SGCard.SGCardType.Maki_1, 1);
-        makiValues.put(SGCard.SGCardType.Maki_2, 2);
-        makiValues.put(SGCard.SGCardType.Maki_3, 3);
-
         for (int i = 0; i < playerCount; i++) {
             List<SGCard> playerPlayedMakis = sggs.getPlayerField(i).getComponents();
             playerPlayedMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
             for (SGCard card : playerPlayedMakis) {
                 int makiScore = playerMakiScores.get(i);
-                playerMakiScores.set(i, makiScore + makiValues.get(card.type));
+                playerMakiScores.set(i, makiScore + getMakiScore(card.type));
             }
         }
 
+        // Add all the maki scores left to the current player
         ArrayList<SGCard> availableMakis = new ArrayList<>(availableCards);
         availableMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
         for (SGCard card : availableMakis) {
             int makiScore = playerMakiScores.get(currentPlayerId);
-            playerMakiScores.set(currentPlayerId, makiScore + makiValues.get(card.type));
+            playerMakiScores.set(currentPlayerId, makiScore + getMakiScore(card.type));
         }
 
+        // See how many players are ahead of the current player
+        // If the current player might get to at least the second place, he has a chance of winning the maki race
         int playersAhead = 0;
         for (int i = 0; i < playerCount; i++) {
             if (i == currentPlayerId) {
@@ -352,6 +352,19 @@ class BasicPruningTreeNode {
             }
         }
         return playersAhead < 2;
+    }
+
+    // return the maki's score according to its type
+    int getMakiScore(SGCard.SGCardType makiType) {
+        switch (makiType) {
+            case Maki_1:
+                return 1;
+            case Maki_2:
+                return 2;
+            case Maki_3:
+                return 3;
+        }
+        return 0;
     }
 
     /**
