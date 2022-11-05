@@ -12,7 +12,7 @@ import java.util.Objects;
 
 public class PlayCardAction extends AbstractAction {
     final int playerId;
-    public final SGCard.SGCardType cardType;
+    final SGCard.SGCardType cardType;
 
     public PlayCardAction(int playerId, SGCard.SGCardType cardType)
     {

@@ -228,7 +228,7 @@ class BasicPruningTreeNode {
                 boolean isNoGainAction = false;
                 try {
                     PlayCardAction playCardAction = (PlayCardAction) action;
-                    SGCard.SGCardType cardType = playCardAction.cardType;
+                    SGCard.SGCardType cardType = getCardType(playCardAction);
                     ArrayList<SGCard> availableCards = new ArrayList<>();
                     for (int i = 0; i < playerCount; i++) {
                         availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
@@ -314,6 +314,10 @@ class BasicPruningTreeNode {
 
         root.fmCallsCount++;  // log one iteration complete
         return bestAction;
+    }
+
+    SGCard.SGCardType getCardType(PlayCardAction action) {
+        return SGCard.SGCardType.valueOf(action.toString().replace("Play ", ""));
     }
 
     // See if the player can win the maki race of this round, if he gets to play all the makis left
