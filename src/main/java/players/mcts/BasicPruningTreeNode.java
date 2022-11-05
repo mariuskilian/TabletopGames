@@ -3,6 +3,7 @@ package players.mcts;
 import core.AbstractGameState;
 import core.actions.AbstractAction;
 import games.sushigo.SGGameState;
+import games.sushigo.actions.ChopSticksAction;
 import games.sushigo.actions.PlayCardAction;
 import games.sushigo.cards.SGCard;
 import players.PlayerConstants;

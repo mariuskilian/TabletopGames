@@ -6,12 +6,22 @@ import core.ParameterFactory;
 import core.interfaces.IGameListener;
 import core.interfaces.IStatisticLogger;
 import games.GameType;
+import players.PlayerConstants;
 import players.PlayerFactory;
 import games.sushigo.SushiGoHeuristic;
+import kotlin.random.Random;
 import players.mcts.BasicMCTSPlayer;
+import players.mcts.BasicPBMCTSPlayer;
+import players.mcts.BasicPruningMCTSPlayer;
+import players.mcts.JamMCTSPlayer;
+import players.mcts.MASTPlayer;
 import players.mcts.MCTSParams;
 import players.mcts.MCTSPlayer;
-import players.mcts.BasicPruningMCTSPlayer;
+import players.rhea.RHEAParams;
+import players.rhea.RHEAPlayer;
+import players.rmhc.RMHCParams;
+import players.rmhc.RMHCPlayer;
+import players.simple.OSLAPlayer;
 import players.simple.RandomPlayer;
 import utilities.FileStatsLogger;
 
@@ -97,10 +107,10 @@ public class RoundRobinTournament extends AbstractTournament {
         }
         /* 1. Settings for the tournament */
         GameType gameToPlay = GameType.valueOf(getArg(args, "game", "SushiGo"));
-        int nPlayersPerGame = getArg(args, "nPlayers", 4);
+        int nPlayersPerGame = getArg(args, "nPlayers",2);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
-        int matchups = getArg(args, "matchups", 5);
+        int matchups = getArg(args, "matchups", 250);
         String playerDirectory = getArg(args, "players", "");
         String gameParams = getArg(args, "gameParams", "");
         String statsLogPrefix = getArg(args, "statsLog", "");
@@ -123,14 +133,63 @@ public class RoundRobinTournament extends AbstractTournament {
             }
         } else {
             /* 2. Set up players */
-            agents.add(new MCTSPlayer());
-            agents.add(new BasicMCTSPlayer());
-          
-            MCTSParams params1 = new MCTSParams();
-            params1.heuristic = new SushiGoHeuristic();
-            agents.add(new BasicMCTSPlayer(params1));
-          
-            agents.add(new BasicPruningMCTSPlayer());
+
+            // agents.add(new RHEAPlayer());
+            // agents.add(new RMHCPlayer());
+            // agents.add(new OSLAPlayer());
+            // agents.add(new RandomPlayer());
+
+            PlayerConstants budgetType = PlayerConstants.BUDGET_TIME;
+            int budget = 100;
+
+            // Our Players
+
+            MCTSParams mctsParamsWithHeuristic = new MCTSParams();
+            mctsParamsWithHeuristic.budgetType = budgetType;
+            mctsParamsWithHeuristic.budget = budget;
+            mctsParamsWithHeuristic.heuristic = new SushiGoHeuristic();
+
+            MCTSParams mctsParamsWithoutHeuristic = new MCTSParams();
+            mctsParamsWithoutHeuristic.budgetType = budgetType;
+            mctsParamsWithoutHeuristic.budget = budget;
+
+            // Isolated
+            BasicMCTSPlayer heurMCTS = new BasicMCTSPlayer(mctsParamsWithHeuristic);
+            BasicPBMCTSPlayer PBMCTS = new BasicPBMCTSPlayer(mctsParamsWithoutHeuristic);
+            BasicPruningMCTSPlayer pruningMCTS = new BasicPruningMCTSPlayer(mctsParamsWithoutHeuristic);
+            // Combined with Heuristic
+            BasicPBMCTSPlayer heurPBMCTS = new BasicPBMCTSPlayer(mctsParamsWithHeuristic);
+            BasicPruningMCTSPlayer heurPruningMCTS = new BasicPruningMCTSPlayer(mctsParamsWithHeuristic);
+            // All 3 combined
+            JamMCTSPlayer jamMCTS = new JamMCTSPlayer(mctsParamsWithHeuristic);
+
+
+            // Competitors
+
+            MCTSParams mctsParams = new MCTSParams();
+            mctsParams.budgetType = budgetType;
+            mctsParams.budget = budget;
+            BasicMCTSPlayer basicMCTS = new BasicMCTSPlayer(mctsParams);
+
+            RHEAParams rheaParams = new RHEAParams();
+            rheaParams.budgetType = budgetType;
+            rheaParams.budget = budget;
+            RHEAPlayer rhea = new RHEAPlayer(rheaParams);
+
+            OSLAPlayer osla = new OSLAPlayer();
+
+            // Add agents
+
+            MCTSParams p = new MCTSParams();
+            p.K = 1;
+            p.rolloutLength = 20;
+            p.maxTreeDepth = 25;
+            p.heuristic = new SushiGoHeuristic();
+            agents.add(new BasicMCTSPlayer(p));
+
+            // agents.add(new BasicMCTSPlayer());
+            // agents.add(new RHEAPlayer());
+            agents.add(new OSLAPlayer());
 
 //            agents.add(new RandomPlayer());
 //            agents.add(new BasicMCTSPlayer());

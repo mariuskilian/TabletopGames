@@ -1,0 +1,238 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Launch Game",
+            "request": "launch",
+            "mainClass": "core.Game",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch AIReport",
+            "request": "launch",
+            "mainClass": "evaluation.AIReport",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch ForwardModelTester",
+            "request": "launch",
+            "mainClass": "evaluation.ForwardModelTester",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch GameReport",
+            "request": "launch",
+            "mainClass": "evaluation.GameReport",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch ParameterSearch",
+            "request": "launch",
+            "mainClass": "evaluation.ParameterSearch",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch ProgressiveLearner",
+            "request": "launch",
+            "mainClass": "evaluation.ProgressiveLearner",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch RoundRobinTournament",
+            "request": "launch",
+            "mainClass": "evaluation.RoundRobinTournament",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch GameType",
+            "request": "launch",
+            "mainClass": "games.GameType",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch CantStopGame",
+            "request": "launch",
+            "mainClass": "games.cantstop.CantStopGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch CatanGame",
+            "request": "launch",
+            "mainClass": "games.catan.CatanGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch ColtExpressGame",
+            "request": "launch",
+            "mainClass": "games.coltexpress.ColtExpressGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch Connect4Game",
+            "request": "launch",
+            "mainClass": "games.connect4.Connect4Game",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch DiamantGame",
+            "request": "launch",
+            "mainClass": "games.diamant.DiamantGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch ExplodingKittensGame",
+            "request": "launch",
+            "mainClass": "games.explodingkittens.ExplodingKittensGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch LoveLetterGame",
+            "request": "launch",
+            "mainClass": "games.loveletter.LoveLetterGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch PandemicGame",
+            "request": "launch",
+            "mainClass": "games.pandemic.PandemicGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch PokerGame",
+            "request": "launch",
+            "mainClass": "games.poker.PokerGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch TicTacToeGame",
+            "request": "launch",
+            "mainClass": "games.tictactoe.TicTacToeGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch UnoGame",
+            "request": "launch",
+            "mainClass": "games.uno.UnoGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch VirusGame",
+            "request": "launch",
+            "mainClass": "games.virus.VirusGame",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch Frontend",
+            "request": "launch",
+            "mainClass": "gui.Frontend",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch PlayerType",
+            "request": "launch",
+            "mainClass": "players.PlayerType",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch SVMEvaluator",
+            "request": "launch",
+            "mainClass": "players.learners.SVMEvaluator",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch SVMValidator",
+            "request": "launch",
+            "mainClass": "players.learners.SVMValidator",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch SimpleSVMLearner",
+            "request": "launch",
+            "mainClass": "players.learners.SimpleSVMLearner",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch WekaLogisticLearner",
+            "request": "launch",
+            "mainClass": "players.learners.WekaLogisticLearner",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch BoxPlot",
+            "request": "launch",
+            "mainClass": "utilities.BoxPlot",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch FileReducer",
+            "request": "launch",
+            "mainClass": "utilities.FileReducer",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch LineChart",
+            "request": "launch",
+            "mainClass": "utilities.LineChart",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch MethodReferenceTest",
+            "request": "launch",
+            "mainClass": "utilities.MethodReferenceTest",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch BoxPlot(1)",
+            "request": "launch",
+            "mainClass": "utilities.plotting.BoxPlot",
+            "projectName": "ModernBoardGame"
+        },
+        {
+            "type": "java",
+            "name": "Launch LineChart(1)",
+            "request": "launch",
+            "mainClass": "utilities.plotting.LineChart",
+            "projectName": "ModernBoardGame"
+        }
+    ]
+}
