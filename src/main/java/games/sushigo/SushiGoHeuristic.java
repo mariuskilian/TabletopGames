@@ -15,8 +15,8 @@ import static games.sushigo.cards.SGCard.SGCardType.*;
 public class SushiGoHeuristic extends TunableParameters implements IStateHeuristic {
 
     double singleTempuraValue = 2.5;
-    double singleSashimiValue = 10.0/3.0;
-    double doubleSashimiValue = 20.0/3.0;
+    double singleSashimiValue = 10.0 / 3.0;
+    double doubleSashimiValue = 20.0 / 3.0;
     double wasabiSquidValue = 6;
     double wasabiSalmonValue = 4;
     double wasabiEggValue = 2;
@@ -26,7 +26,7 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
     double leastPuddingsValue = -6;
 
     // values for cards that don't have inherent values that are in the game score
-    double[] roundModifiers = new double[]{};
+    double[] roundModifiers = new double[] {};
     ArrayList<SGCard> availableCards = new ArrayList<SGCard>();
     int nPlayers = 0;
 
@@ -45,7 +45,8 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
 
     @Override
     public double evaluateState(AbstractGameState gs, int playerId) {
-        if (!gs.isNotTerminal()) return gs.getPlayerResults()[playerId].value;
+        if (!gs.isNotTerminal())
+            return gs.getPlayerResults()[playerId].value;
         SGGameState sggs = (SGGameState) gs;
 
         nPlayers = sggs.getNPlayers();
@@ -53,20 +54,32 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
         roundModifiers = new double[nPlayers];
         determineAvailableCards(sggs, playerId);
         evaluateUncompletedCards(sggs, playerId);
-        return evaluateDiff2BestPlayer(sggs, playerId);
+        // double heuristicScore = evaluateIndividualScore(sggs, playerId);
+        // double heuristicScore = evaluateDiff2BestPlayer(sggs, playerId);
+        double heuristicScore = evaluateWeightedDiffAllPlayers(sggs, playerId);
+        return heuristicScore;
     }
 
     void determineAvailableCards(SGGameState sggs, int playerId) {
         ArrayList<SGCard> availableCards = new ArrayList<>();
         for (int i = 0; i < nPlayers; i++) {
-            if (sggs.hasSeenHand(playerId, i)) availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
+            if (sggs.hasSeenHand(playerId, i))
+                availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
         }
         this.availableCards = availableCards;
     }
 
     double getModifiedScore(SGGameState sggs, int playerId) {
-        double modifierFactor = 0.2;
+        double modifierFactor = nPlayers / 10.0;
         return sggs.getGameScore(playerId) + (modifierFactor * roundModifiers[playerId]);
+    }
+
+    double evaluateIndividualScore(SGGameState sggs, int playerId) {
+        // Same as default heuristic, but with the modified game sore
+        if (sggs.isNotTerminal()) {
+            return getModifiedScore(sggs, playerId);
+        }
+        return sggs.getPlayerResults()[playerId].value;
     }
 
     double evaluateDiff2BestPlayer(SGGameState sggs, int playerId) {
@@ -76,16 +89,48 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
         double maxScore = currentPlayerScore;
         double minScore = currentPlayerScore;
         for (int i = 0; i < nPlayers; i++) {
-            if (i == playerId) continue;
+            if (i == playerId)
+                continue;
             double playerScore = getModifiedScore(sggs, i);
-            if (playerScore > maxScore) maxScore = playerScore;
-            if (playerScore < minScore) minScore = playerScore;
-            if (playerScore > bestOtherPlayerScore) bestOtherPlayerScore = playerScore;
+            if (playerScore > maxScore)
+                maxScore = playerScore;
+            if (playerScore < minScore)
+                minScore = playerScore;
+            if (playerScore > bestOtherPlayerScore)
+                bestOtherPlayerScore = playerScore;
         }
         // Maximize difference to best other player
         double bestPlayerDif = currentPlayerScore - bestOtherPlayerScore;
         // Dividing by max score gives bigger leads more value, while keeping it relative to current board state
         return bestPlayerDif / Math.max(maxScore, 1);
+    }
+
+    double evaluateWeightedDiffAllPlayers(SGGameState sggs, int playerId) {
+        // Make a key value list of all other players scores, with key as player ID
+        double[] scores = new double[nPlayers - 1];
+        for (int _i = 0; _i < nPlayers; _i++) {
+            int i = _i;
+            if (i == playerId) continue;
+            if (i > playerId) i--;
+            scores[i] = getModifiedScore(sggs, _i);
+        }
+        // Sort it by highest to lowest
+        Arrays.sort(scores);
+        // Calculate weighted score difference
+        double result = 0.0;
+        double denominator = 1.0;
+        double playerScore = getModifiedScore(sggs, playerId);
+        for (int i = scores.length - 1; i >= 0; i--) {
+            denominator *= 2.0;
+            result += (playerScore - scores[i]) / denominator;
+        }
+        // account for the missing part by using this formula
+        playerScore *= denominator / (denominator - 1);
+        // Normalize result between current score range
+        double maxScore = Math.max(scores[scores.length - 1], playerScore);
+        result /= Math.max(maxScore, 1);
+        // Done
+        return result;
     }
 
     void evaluateUncompletedCards(SGGameState sggs, int playerId) {
@@ -105,11 +150,13 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
             if (cc.nTempura == 1) {
                 double likelihoodFactor = 1;
                 // If player has another tempura in hand, tempura modifier can be ignored
-                if (seen && hand.stream().anyMatch(c -> c.type == Tempura)) cc.nTempura = 0;
+                if (seen && hand.stream().anyMatch(c -> c.type == Tempura))
+                    cc.nTempura = 0;
                 else {
                     // Check how many tempuras are available, and determine some likelihood that player will get one
                     int nAvailableTempura = (int) availableCards.stream().filter(c -> c.type == Tempura).count();
-                    if (nAvailableTempura < nPlayers) likelihoodFactor = 1.0 / (nPlayers - nAvailableTempura);
+                    if (nAvailableTempura < nPlayers)
+                        likelihoodFactor = 1.0 / (nPlayers - nAvailableTempura);
                     roundModifiers[i] += likelihoodFactor * singleTempuraValue;
                 }
             }
@@ -120,21 +167,25 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
                 double likelihoodFactor = 1;
                 // If there are still >= 2 sashimi available, give modifier
                 int nAvailableSashimi = (int) availableCards.stream().filter(c -> c.type == Sashimi).count();
-                if (nAvailableSashimi < nPlayers) likelihoodFactor = 1.0 / (nPlayers - nAvailableSashimi);
+                if (nAvailableSashimi < nPlayers)
+                    likelihoodFactor = 1.0 / (nPlayers - nAvailableSashimi);
                 // Square likelihood factor since player still needs 2 sashimi
                 likelihoodFactor *= likelihoodFactor;
-                if (nAvailableSashimi >= 2) roundModifiers[i] += likelihoodFactor * singleSashimiValue;
+                if (nAvailableSashimi >= 2)
+                    roundModifiers[i] += likelihoodFactor * singleSashimiValue;
             }
             // ... if player is missing 1 sashimi to complete trio
             if (cc.nSashimi == 2) {
                 double likelihoodFactor = 1;
                 // If player has another sashimi in hand, modifier can be ignored
-                if (seen && hand.stream().anyMatch(c -> c.type == Sashimi)) cc.nSashimi = 0;
+                if (seen && hand.stream().anyMatch(c -> c.type == Sashimi))
+                    cc.nSashimi = 0;
                 // If no other sashimi are in play, modifier can be ignored
                 else {
                     // Check how many sashimi are available, and determine some likelihood that player will get one
                     int nAvailableSashimi = (int) availableCards.stream().filter(c -> c.type == Sashimi).count();
-                    if (nAvailableSashimi < nPlayers) likelihoodFactor = 1.0 / (nPlayers - nAvailableSashimi);
+                    if (nAvailableSashimi < nPlayers)
+                        likelihoodFactor = 1.0 / (nPlayers - nAvailableSashimi);
                     roundModifiers[i] += likelihoodFactor * doubleSashimiValue;
                 }
             }
@@ -148,27 +199,30 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
                 // Otherwise, as long as there are squid nigiri in play, add modifier for squid nigiri
                 if (!seen || hand.stream().noneMatch(c -> c.type == SquidNigiri)) {
                     nAvailableNigiri += (int) availableCards.stream().filter(c -> c.type == SquidNigiri).count();
-                    if (nAvailableNigiri < nPlayers) likelihoodFactor = 1.0 / (nPlayers - nAvailableNigiri);
+                    if (nAvailableNigiri < nPlayers)
+                        likelihoodFactor = 1.0 / (nPlayers - nAvailableNigiri);
                     highestValue = Math.max(highestValue, likelihoodFactor * wasabiSquidValue);
                 }
                 // Continue the same steps in descending order with salmon nigiri and egg nigiri
                 if (!seen || hand.stream().noneMatch(c -> c.type == SalmonNigiri)) {
                     // nAvailableNigiri is added, since existing squid nigiri increase chance of getting salmon nigiri
                     nAvailableNigiri += (int) availableCards.stream().filter(c -> c.type == SalmonNigiri).count();
-                    likelihoodFactor = (nAvailableNigiri < nPlayers)  ? 1.0 / (nPlayers - nAvailableNigiri) : 1.0;
+                    likelihoodFactor = (nAvailableNigiri < nPlayers) ? 1.0 / (nPlayers - nAvailableNigiri) : 1.0;
                     highestValue = Math.max(highestValue, likelihoodFactor * wasabiSalmonValue);
                 }
                 if (!seen || hand.stream().noneMatch(c -> c.type == EggNigiri)) {
                     nAvailableNigiri += (int) availableCards.stream().filter(c -> c.type == EggNigiri).count();
-                    likelihoodFactor = (nAvailableNigiri < nPlayers)  ? 1.0 / (nPlayers - nAvailableNigiri) : 1.0;
+                    likelihoodFactor = (nAvailableNigiri < nPlayers) ? 1.0 / (nPlayers - nAvailableNigiri) : 1.0;
                     highestValue = Math.max(highestValue, likelihoodFactor * wasabiEggValue);
                 }
-                if (nAvailableNigiri > 0) roundModifiers[i] += highestValue;
+                if (nAvailableNigiri > 0)
+                    roundModifiers[i] += highestValue;
             }
 
             // Evaluate Chopsticks
             // ... chopsticks are worth as many rounds as there are left - 1 (as with 1 round left you cannot use them)
-            if (cc.nChopsticks > 0) roundModifiers[i] += hand.size() - 1;
+            if (cc.nChopsticks > 0)
+                roundModifiers[i] += hand.size() - 1;
 
             // Evaluate Dumplings
             if (cc.nDumplings > 0 && cc.nDumplings < 5) {
@@ -178,9 +232,11 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
                 //       worth 10 points. Therefore, each dumpling on board is worth 2.5 points, so the 2 dumplings on
                 //       board are worth 5 points. Subtract from that the existing 3 points the dumplings give to get
                 //       a 2 point modifier.
-                int totalNDumplings = cc.nDumplings + (int) availableCards.stream().filter(c -> c.type == Dumpling).count();
-                if (totalNDumplings > 5) totalNDumplings = 5;
-                int[] score = new int[]{1, 3, 6, 10, 15};
+                int totalNDumplings = cc.nDumplings
+                        + (int) availableCards.stream().filter(c -> c.type == Dumpling).count();
+                if (totalNDumplings > 5)
+                    totalNDumplings = 5;
+                int[] score = new int[] { 1, 3, 6, 10, 15 };
                 double pointsToAdd = cc.nDumplings * (score[totalNDumplings - 1] - score[cc.nDumplings - 1]);
                 roundModifiers[i] += likelihoodFactor * pointsToAdd;
             }
@@ -188,23 +244,28 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
 
         // Evaluate Maki
         // Filter ccs list into arrays of pairs [id, nMaki] and sort by number of maki in descending order
-        int[][] sortedMaki = Arrays.stream(ccs).map(cc -> new int[]{cc.playerId, cc.nMaki}).sorted(Comparator.comparingInt(pair -> pair[1])).toArray(int[][]::new);
+        int[][] sortedMaki = Arrays.stream(ccs).map(cc -> new int[] { cc.playerId, cc.nMaki })
+                .sorted(Comparator.comparingInt(pair -> pair[1])).toArray(int[][]::new);
         Collections.reverse(Arrays.asList(sortedMaki));
         // Receive important information to distribute points
         int winningMakiScore = sortedMaki[0][1];
         int nWinnersMaki = (int) Arrays.stream(sortedMaki).filter(pair -> pair[1] == winningMakiScore).count();
         int runnerupMakiScore = (nWinnersMaki == nPlayers) ? 0 : sortedMaki[nWinnersMaki][1];
-        int nRunnersupMaki = (nWinnersMaki == nPlayers) ? 0 : (int) Arrays.stream(sortedMaki).filter(pair -> pair[1] == runnerupMakiScore).count();
+        int nRunnersupMaki = (nWinnersMaki == nPlayers) ? 0
+                : (int) Arrays.stream(sortedMaki).filter(pair -> pair[1] == runnerupMakiScore).count();
         // Calculate actual modifier points based on number of players splitting it
         int winningMakiPoints = winningMakiScore > 0 ? (int) winningMakiValue / nWinnersMaki : 0;
         int runnerupMakiPoints = runnerupMakiScore > 0 ? (int) runnerupMakiValue / nRunnersupMaki : 0;
         // Add points to respective players
-        for (int i = 0; i < nWinnersMaki; i++) roundModifiers[sortedMaki[i][0]] += winningMakiPoints;
-        for (int i = nWinnersMaki; i < nWinnersMaki + nRunnersupMaki; i++) roundModifiers[sortedMaki[i][0]] += runnerupMakiPoints;
+        for (int i = 0; i < nWinnersMaki; i++)
+            roundModifiers[sortedMaki[i][0]] += winningMakiPoints;
+        for (int i = nWinnersMaki; i < nWinnersMaki + nRunnersupMaki; i++)
+            roundModifiers[sortedMaki[i][0]] += runnerupMakiPoints;
 
         // Evaluate Puddings
         // Filter ccs list into arrays of pairs [id, nPudding] and sort by number of puddings in descending order
-        int[][] sortedPuddings = Arrays.stream(ccs).map(cc -> new int[]{cc.playerId, cc.nPudding}).sorted(Comparator.comparingInt(pair -> pair[1])).toArray(int[][]::new);
+        int[][] sortedPuddings = Arrays.stream(ccs).map(cc -> new int[] { cc.playerId, cc.nPudding })
+                .sorted(Comparator.comparingInt(pair -> pair[1])).toArray(int[][]::new);
         Collections.reverse(Arrays.asList(sortedPuddings));
         // Receive important information to distribute points
         int mostPuddingsScore = sortedPuddings[0][1];
@@ -215,8 +276,10 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
         int mostPuddingsPoints = mostPuddingsScore > 0 ? (int) mostPuddingsValue / nMostPuddings : 0;
         int leastPuddingPoints = (int) leastPuddingsValue / nLeastPuddings;
         // Add points to respective players
-        for (int i = 0; i < nMostPuddings; i++) roundModifiers[sortedPuddings[i][0]] += mostPuddingsPoints;
-        for (int i = nPlayers - 1; i >= nPlayers - nLeastPuddings; i--) roundModifiers[sortedPuddings[i][0]] += leastPuddingPoints;
+        for (int i = 0; i < nMostPuddings; i++)
+            roundModifiers[sortedPuddings[i][0]] += mostPuddingsPoints;
+        for (int i = nPlayers - 1; i >= nPlayers - nLeastPuddings; i--)
+            roundModifiers[sortedPuddings[i][0]] += leastPuddingPoints;
     }
 
     @Override
@@ -286,7 +349,8 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
         int nMaki;
         int nPudding;
 
-        CardCount(int playerId, int nTempura, int nSashimi, int nWasabi, int nChopsticks, int nDumplings, int nMaki, int nPudding) {
+        CardCount(int playerId, int nTempura, int nSashimi, int nWasabi, int nChopsticks, int nDumplings, int nMaki,
+                int nPudding) {
             this.playerId = playerId;
             this.nTempura = nTempura;
             this.nSashimi = nSashimi;
@@ -307,11 +371,25 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
         int nMaki = 0;
         int nPudding = 0;
         for (SGCard card : sggs.getPlayerField(playerId).getComponents()) {
-            if (card.type == Maki_1) nMaki += 1;
-            if (card.type == Maki_2) nMaki += 2;
-            if (card.type == Maki_3) nMaki += 3;
-            if (card.type == Pudding) nPudding++;
+            if (card.type == Maki_1)
+                nMaki += 1;
+            if (card.type == Maki_2)
+                nMaki += 2;
+            if (card.type == Maki_3)
+                nMaki += 3;
+            if (card.type == Pudding)
+                nPudding++;
         }
         return new CardCount(playerId, nTempura, nSashimi, nWasabi, nChopsticks, nDumplings, nMaki, nPudding);
+    }
+}
+
+class PlayerInfo<T> {
+    final int id;
+    final T value;
+
+    PlayerInfo(int id, T value) {
+        this.id = id;
+        this.value = value;
     }
 }
