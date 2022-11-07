@@ -8,6 +8,7 @@ import core.interfaces.IStatisticLogger;
 import games.GameType;
 import players.PlayerConstants;
 import players.PlayerFactory;
+import players.groupJ.GroupJ_BasicMCTSPlayer;
 import games.sushigo.SushiGoHeuristic;
 import kotlin.random.Random;
 import players.mcts.BasicMCTSPlayer;
@@ -107,10 +108,10 @@ public class RoundRobinTournament extends AbstractTournament {
         }
         /* 1. Settings for the tournament */
         GameType gameToPlay = GameType.valueOf(getArg(args, "game", "SushiGo"));
-        int nPlayersPerGame = getArg(args, "nPlayers",2);
+        int nPlayersPerGame = getArg(args, "nPlayers", 2);
         boolean selfPlay = getArg(args, "selfPlay", false);
         String mode = getArg(args, "mode", "exhaustive");
-        int matchups = getArg(args, "matchups", 250);
+        int matchups = getArg(args, "matchups", 100);
         String playerDirectory = getArg(args, "players", "");
         String gameParams = getArg(args, "gameParams", "");
         String statsLogPrefix = getArg(args, "statsLog", "");
@@ -139,57 +140,12 @@ public class RoundRobinTournament extends AbstractTournament {
             // agents.add(new OSLAPlayer());
             // agents.add(new RandomPlayer());
 
-            PlayerConstants budgetType = PlayerConstants.BUDGET_TIME;
-            int budget = 100;
-
-            // Our Players
-
-            MCTSParams mctsParamsWithHeuristic = new MCTSParams();
-            mctsParamsWithHeuristic.budgetType = budgetType;
-            mctsParamsWithHeuristic.budget = budget;
-            mctsParamsWithHeuristic.heuristic = new SushiGoHeuristic();
-
-            MCTSParams mctsParamsWithoutHeuristic = new MCTSParams();
-            mctsParamsWithoutHeuristic.budgetType = budgetType;
-            mctsParamsWithoutHeuristic.budget = budget;
-
-            // Isolated
-            BasicMCTSPlayer heurMCTS = new BasicMCTSPlayer(mctsParamsWithHeuristic);
-            BasicPBMCTSPlayer PBMCTS = new BasicPBMCTSPlayer(mctsParamsWithoutHeuristic);
-            BasicPruningMCTSPlayer pruningMCTS = new BasicPruningMCTSPlayer(mctsParamsWithoutHeuristic);
-            // Combined with Heuristic
-            BasicPBMCTSPlayer heurPBMCTS = new BasicPBMCTSPlayer(mctsParamsWithHeuristic);
-            BasicPruningMCTSPlayer heurPruningMCTS = new BasicPruningMCTSPlayer(mctsParamsWithHeuristic);
-            // All 3 combined
-            JamMCTSPlayer jamMCTS = new JamMCTSPlayer(mctsParamsWithHeuristic);
-
-
-            // Competitors
-
-            MCTSParams mctsParams = new MCTSParams();
-            mctsParams.budgetType = budgetType;
-            mctsParams.budget = budget;
-            BasicMCTSPlayer basicMCTS = new BasicMCTSPlayer(mctsParams);
-
-            RHEAParams rheaParams = new RHEAParams();
-            rheaParams.budgetType = budgetType;
-            rheaParams.budget = budget;
-            RHEAPlayer rhea = new RHEAPlayer(rheaParams);
-
-            OSLAPlayer osla = new OSLAPlayer();
-
-            // Add agents
-
-            MCTSParams p = new MCTSParams();
-            p.K = 1;
-            p.rolloutLength = 20;
-            p.maxTreeDepth = 25;
-            p.heuristic = new SushiGoHeuristic();
-            agents.add(new BasicMCTSPlayer(p));
-
-            // agents.add(new BasicMCTSPlayer());
-            // agents.add(new RHEAPlayer());
-            agents.add(new OSLAPlayer());
+            agents.add(new GroupJ_BasicMCTSPlayer());
+            
+            RHEAParams p = new RHEAParams();
+            p.budgetType = PlayerConstants.BUDGET_TIME;
+            p.budget = 1000;
+            agents.add(new RHEAPlayer(p));
 
 //            agents.add(new RandomPlayer());
 //            agents.add(new BasicMCTSPlayer());

@@ -12,7 +12,7 @@ import java.util.*;
 import static games.sushigo.cards.SGCard.SGCardType.*;
 
 
-public class SushiGoHeuristic extends TunableParameters implements IStateHeuristic {
+public class GroupJ_SGHeuristic extends TunableParameters implements IStateHeuristic {
 
     double singleTempuraValue = 2.5;
     double singleSashimiValue = 10.0 / 3.0;
@@ -30,7 +30,7 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
     ArrayList<SGCard> availableCards = new ArrayList<SGCard>();
     int nPlayers = 0;
 
-    public SushiGoHeuristic() {
+    public GroupJ_SGHeuristic() {
         addTunableParameter("singleTempuraValue", singleTempuraValue);
         addTunableParameter("singleSashimiValue", singleSashimiValue);
         addTunableParameter("doubleSashimiValue", doubleSashimiValue);
@@ -300,7 +300,7 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
 
     @Override
     protected AbstractParameters _copy() {
-        SushiGoHeuristic retValue = new SushiGoHeuristic();
+        GroupJ_SGHeuristic retValue = new GroupJ_SGHeuristic();
         retValue.singleTempuraValue = singleTempuraValue;
         retValue.singleSashimiValue = singleSashimiValue;
         retValue.doubleSashimiValue = doubleSashimiValue;
@@ -318,8 +318,8 @@ public class SushiGoHeuristic extends TunableParameters implements IStateHeurist
 
     @Override
     protected boolean _equals(Object o) {
-        if (o instanceof SushiGoHeuristic) {
-            SushiGoHeuristic other = (SushiGoHeuristic) o;
+        if (o instanceof GroupJ_SGHeuristic) {
+            GroupJ_SGHeuristic other = (GroupJ_SGHeuristic) o;
             return other.singleTempuraValue == singleTempuraValue &&
                     other.singleSashimiValue == singleSashimiValue &&
                     other.doubleSashimiValue == doubleSashimiValue &&

@@ -1,29 +1,27 @@
-package players.mcts;
+package players.groupJ;
 
 import core.AbstractGameState;
 import core.actions.AbstractAction;
-import games.sushigo.SushiGoHeuristic;
+import games.sushigo.SGGameState;
 import games.sushigo.actions.PlayCardAction;
+import games.sushigo.cards.SGCard;
 import players.PlayerConstants;
 import players.simple.RandomPlayer;
 import utilities.ElapsedCpuTimer;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 import static players.PlayerConstants.*;
 import static utilities.Utils.noise;
 
-class BasicPBTreeNode {
+class GroupJ_BasicTreeNode {
     // Root node of tree
-    BasicPBTreeNode root;
+    GroupJ_BasicTreeNode root;
     // Parent of this node
-    BasicPBTreeNode parent;
+    GroupJ_BasicTreeNode parent;
     // Children of this node
-    Map<AbstractAction, BasicPBTreeNode> children = new HashMap<>();
+    Map<AbstractAction, GroupJ_BasicTreeNode> children = new HashMap<>();
     // Depth of this node
     final int depth;
 
@@ -34,14 +32,14 @@ class BasicPBTreeNode {
     // Number of FM calls and State copies up until this node
     private int fmCallsCount;
     // Parameters guiding the search
-    private BasicPBMCTSPlayer player;
+    private GroupJ_BasicMCTSPlayer player;
     private Random rnd;
     private RandomPlayer randomPlayer = new RandomPlayer();
 
     // State in this node (closed loop)
     private AbstractGameState state;
 
-    protected BasicPBTreeNode(BasicPBMCTSPlayer player, BasicPBTreeNode parent, AbstractGameState state, Random rnd) {
+    protected GroupJ_BasicTreeNode(GroupJ_BasicMCTSPlayer player, GroupJ_BasicTreeNode parent, AbstractGameState state, Random rnd) {
         this.player = player;
         this.fmCallsCount = 0;
         this.parent = parent;
@@ -81,7 +79,7 @@ class BasicPBTreeNode {
             ElapsedCpuTimer elapsedTimerIteration = new ElapsedCpuTimer();
 
             // Selection + expansion: navigate tree until a node not fully expanded is found, add a new node to the tree
-            BasicPBTreeNode selected = treePolicy();
+            GroupJ_BasicTreeNode selected = treePolicy();
             // Monte carlo rollout: return value of MC rollout from the newly added node
             double delta = selected.rollOut();
             // Back up the value of the rollout through the tree
@@ -114,9 +112,9 @@ class BasicPBTreeNode {
      *
      * @return - new node added to the tree.
      */
-    private BasicPBTreeNode treePolicy() {
+    private GroupJ_BasicTreeNode treePolicy() {
 
-        BasicPBTreeNode cur = this;
+        GroupJ_BasicTreeNode cur = this;
 
         // Keep iterating while the state reached is not terminal and the depth of the tree is not exceeded
         while (cur.state.isNotTerminal() && cur.depth < player.params.maxTreeDepth) {
@@ -154,7 +152,7 @@ class BasicPBTreeNode {
      *
      * @return - new child node.
      */
-    private BasicPBTreeNode expand() {
+    private GroupJ_BasicTreeNode expand() {
         // Find random child not already created
         Random r = new Random(player.params.getRandomSeed());
         // pick a random unchosen action
@@ -167,7 +165,7 @@ class BasicPBTreeNode {
         advance(nextState, chosen.copy());
 
         // then instantiate a new node
-        BasicPBTreeNode tn = new BasicPBTreeNode(player, this, nextState, rnd);
+        GroupJ_BasicTreeNode tn = new GroupJ_BasicTreeNode(player, this, nextState, rnd);
         children.put(chosen, tn);
         return tn;
     }
@@ -189,7 +187,7 @@ class BasicPBTreeNode {
         double bestValue = -Double.MAX_VALUE;
 
         for (AbstractAction action : children.keySet()) {
-            BasicPBTreeNode child = children.get(action);
+            GroupJ_BasicTreeNode child = children.get(action);
             if (child == null)
                 throw new AssertionError("Should not be here");
 
@@ -198,15 +196,15 @@ class BasicPBTreeNode {
             double childValue = hvVal / (child.nVisits + player.params.epsilon);
 
             // default to standard UCB
-            double explorationTerm = player.params.K * Math.sqrt(Math.log(this.nVisits + 1) / (child.nVisits + player.params.epsilon));
+            double explorationTerm = player.params.K
+                    * Math.sqrt(Math.log(this.nVisits + 1) / (child.nVisits + player.params.epsilon));
             // unless we are using a variant
 
             /** Progressive Bias for enhancement
              * a = argmax(Q(s,a) + c(root(ln.N(s)/N(s,a)) + h(s,a)/1+N(s,a)
              */
             //double progressiveBias = child.rollOut() / (1 + child.nVisits);
-            // double heuristicScore = player.params.heuristic.evaluateState(state, state.getCurrentPlayer());
-            double heuristicScore = new SushiGoHeuristic().evaluateState(state, player.getPlayerID());
+            double heuristicScore = player.params.heuristic.evaluateState(state, player.getPlayerID());
             double progressiveBiasTerm = heuristicScore / (1 + child.nVisits + player.params.epsilon);
             // Find 'UCB' value
             // If 'we' are taking a turn we use classic UCB
@@ -219,11 +217,111 @@ class BasicPBTreeNode {
             // Apply small noise to break ties randomly
             uctValue = noise(uctValue, player.params.epsilon, player.rnd.nextDouble());
 
+            // Pruning. Give absolutely worthless actions a minimum UCT value
+            SGGameState sggs = (SGGameState) state;
+            int currentPlayerId = sggs.getCurrentPlayer();
+            int playerCount = sggs.getNPlayers();
+            boolean isFirstRound = false;
+            for (int i = 0; i < playerCount; i++) {
+                if (i == currentPlayerId) {
+                    continue;
+                } else {
+                    if (!sggs.hasSeenHand(currentPlayerId, i)) {
+                        isFirstRound = true;
+                    }
+                }
+            }
+            if (!isFirstRound) {
+                boolean isNoGainAction = false;
+                try {
+                    PlayCardAction playCardAction = (PlayCardAction) action;
+                    SGCard.SGCardType cardType = getCardType(playCardAction);
+                    ArrayList<SGCard> availableCards = new ArrayList<>();
+                    for (int i = 0; i < playerCount; i++) {
+                        availableCards.addAll(sggs.getPlayerDeck(i).getComponents());
+                    }
+                    switch (cardType) {
+                        case Maki_1:
+                        case Maki_2:
+                        case Maki_3:
+                            // See if the player cannot win the maki race of this round, even if he gets to play all the makis left
+                            if (!canWinMakiRace(sggs, currentPlayerId, playerCount, availableCards)) {
+                                isNoGainAction = true;
+                            }
+                            break;
+                        case Wasabi:
+                            // See if there's no nigiri left to play after wasabi
+                            if (availableCards.stream()
+                                    .noneMatch(c -> c.type == SGCard.SGCardType.EggNigiri
+                                            || c.type == SGCard.SGCardType.SalmonNigiri
+                                            || c.type == SGCard.SGCardType.SquidNigiri)) {
+                                isNoGainAction = true;
+                            }
+                            break;
+                        case Tempura:
+                            // See if no one can make another tempura set
+                            if (availableCards.stream().filter(c -> c.type == SGCard.SGCardType.Tempura).count() == 1) {
+                                boolean noOneCanMakeTempuraSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerTempuraAmount(i) % 2 == 1) {
+                                        noOneCanMakeTempuraSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeTempuraSet) {
+                                    isNoGainAction = true;
+                                }
+                            }
+                            break;
+                        case Sashimi:
+                            // See if no one can make another sashimi set
+                            int sashimiCount = (int) availableCards.stream()
+                                    .filter(c -> c.type == SGCard.SGCardType.Sashimi).count();
+                            if (sashimiCount == 1) {
+                                boolean noOneCanMakeSashimiSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerSashimiAmount(i) % 3 == 2) {
+                                        noOneCanMakeSashimiSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeSashimiSet) {
+                                    isNoGainAction = true;
+                                }
+                            } else if (sashimiCount == 2) {
+                                boolean noOneCanMakeSashimiSet = true;
+                                for (int i = 0; i < playerCount; i++) {
+                                    if (sggs.getPlayerSashimiAmount(i) % 3 == 2
+                                            || sggs.getPlayerSashimiAmount(i) % 3 == 1) {
+                                        noOneCanMakeSashimiSet = false;
+                                    }
+                                }
+                                if (noOneCanMakeSashimiSet) {
+                                    isNoGainAction = true;
+                                }
+                            }
+                            break;
+                        case Chopsticks:
+                            // Playing chopsticks at the second last turn has zero value, it's always better to play the other card
+                            int cardsLeft = sggs.getPlayerDeck(currentPlayerId).getSize();
+                            if (cardsLeft == 2) {
+                                isNoGainAction = true;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                    if (isNoGainAction) {
+                        uctValue = -Double.MAX_VALUE + 1;
+                    }
+                } catch (ClassCastException e) {
+                }
+            }
+
             // Assign value
-            if (uctValue > bestValue) {
+            if (bestAction == null || uctValue > bestValue) {
                 bestAction = action;
                 bestValue = uctValue;
             }
+
         }
 
         if (bestAction == null)
@@ -231,6 +329,64 @@ class BasicPBTreeNode {
 
         root.fmCallsCount++;  // log one iteration complete
         return bestAction;
+    }
+
+    SGCard.SGCardType getCardType(PlayCardAction action) {
+        return SGCard.SGCardType.valueOf(action.toString().replace("Play ", ""));
+    }
+
+    // See if the player can win the maki race of this round, if he gets to play all the makis left
+    private boolean canWinMakiRace(SGGameState sggs, int currentPlayerId, int playerCount, ArrayList<SGCard> availableCards) {
+        // Get each player's maki score
+        ArrayList<Integer> playerMakiScores = new ArrayList<>();
+        for (int i = 0; i < playerCount; i++) {
+            playerMakiScores.add(0);
+        }
+        for (int i = 0; i < playerCount; i++) {
+            List<SGCard> playerPlayedMakis = sggs.getPlayerField(i).getComponents();
+            playerPlayedMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
+            for (SGCard card : playerPlayedMakis) {
+                int makiScore = playerMakiScores.get(i);
+                playerMakiScores.set(i, makiScore + getMakiScore(card.type));
+            }
+        }
+
+        // Add all the maki scores left to the current player
+        ArrayList<SGCard> availableMakis = new ArrayList<>(availableCards);
+        availableMakis.removeIf(sgCard -> !(sgCard.type == SGCard.SGCardType.Maki_1 || sgCard.type == SGCard.SGCardType.Maki_2 || sgCard.type == SGCard.SGCardType.Maki_3));
+        for (SGCard card : availableMakis) {
+            int makiScore = playerMakiScores.get(currentPlayerId);
+            playerMakiScores.set(currentPlayerId, makiScore + getMakiScore(card.type));
+        }
+
+        // See how many players are ahead of the current player
+        // If the current player might get to at least the second place, he has a chance of winning the maki race
+        int playersAhead = 0;
+        for (int i = 0; i < playerCount; i++) {
+            if (i == currentPlayerId) {
+                continue;
+            } else {
+                if (playerMakiScores.get(i) > playerMakiScores.get(currentPlayerId)) {
+                    playersAhead++;
+                }
+            }
+        }
+        return playersAhead < 2;
+    }
+
+    // return the maki's score according to its type
+    int getMakiScore(SGCard.SGCardType makiType) {
+        switch (makiType) {
+            case Maki_1:
+                return 1;
+            case Maki_2:
+                return 2;
+            case Maki_3:
+                return 3;
+            default:
+                break;
+        }
+        return 0;
     }
 
     /**
@@ -279,7 +435,7 @@ class BasicPBTreeNode {
      * @param result - value of rollout to backup
      */
     private void backUp(double result) {
-        BasicPBTreeNode n = this;
+        GroupJ_BasicTreeNode n = this;
         while (n != null) {
             n.nVisits++;
             n.totValue += result;
@@ -299,7 +455,7 @@ class BasicPBTreeNode {
 
         for (AbstractAction action : children.keySet()) {
             if (children.get(action) != null) {
-                BasicPBTreeNode node = children.get(action);
+                GroupJ_BasicTreeNode node = children.get(action);
                 double childValue = node.nVisits;
 
                 // Apply small noise to break ties randomly
